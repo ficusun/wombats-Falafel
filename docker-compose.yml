@@ -1,0 +1,7 @@
+version: "3"
+services:
+  main:
+    build: ./
+    restart: always
+    ports:
+      - '55442:80'
