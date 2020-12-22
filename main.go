@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"github.com/gorilla/websocket"
 	"fmt"
@@ -69,7 +70,32 @@ func Start() {
 
 }
 
+
+func Router (MessageFromUsers chan []byte) {
+	for message := range MessageFromUsers {
+
+		letter := Letter{}
+
+		err := json.Unmarshal(message, &letter)
+		if err != nil {
+			log.Println(err)
+		}
+
+		messageForUser, err := json.Marshal(letter.Letter)
+		if err != nil {
+			log.Println(err)
+		}
+
+		for id, _ := range Hub.Connections {
+			if id != letter.ClientID {
+				Hub.Connections[id].Send<- messageForUser //[]byte(letter)
+			}
+		}
+	}
+}
+
 func main() {
 	fmt.Println("start app")
+	go Router(MessageFromUsers)
 	Start()
 }

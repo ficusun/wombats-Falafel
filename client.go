@@ -97,8 +97,7 @@ func (c *Client) readPump() {
 			log.Println(err)
 		}
 
-		c.Send <- mes
-		//MessageFromUsers <- mes
+		MessageFromUsers <- mes
 	}
 }
 
