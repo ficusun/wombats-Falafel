@@ -21,7 +21,6 @@ func (ch *ClientHub) getID() int {
 func (ch *ClientHub) AddClient(client *Client) bool {
 	ID := ch.getID()
 
-	// _, ok := m["route"]
 	_, ok := ch.Connections[ID]
 	if !ok {
 		ch.Connections[ID] = client

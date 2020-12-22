@@ -21,46 +21,46 @@ type Client struct {
 	Auth   bool
 }
 
-func (c *Client) writePump() {
+func (customer *Client) writePump() {
 
 	ticker := time.NewTicker(pingPeriod)
 
 	defer func() {
 		ticker.Stop()
-		c.Conn.Close()
-		c.Status = false
+		customer.Conn.Close()
+		customer.Status = false
 	}()
 
 	for {
 		select {
-		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-customer.Send:
+			customer.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				customer.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			writer, err := customer.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			writer.Write(message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(c.Send)
+			n := len(customer.Send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.Send)
+				writer.Write(newline)
+				writer.Write(<-customer.Send)
 			}
 
-			if err := w.Close(); err != nil {
+			if err := writer.Close(); err != nil {
 				return
 			}
 
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			customer.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := customer.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
@@ -71,18 +71,18 @@ func (c *Client) writePump() {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump() {
+func (customer *Client) readPump() {
 
 	defer func() {
-		c.Conn.Close()
-		c.Status = false
+		customer.Conn.Close()
+		customer.Status = false
 	}()
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error { c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	customer.Conn.SetReadLimit(maxMessageSize)
+	customer.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	customer.Conn.SetPongHandler(func(string) error { customer.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.Conn.ReadMessage()
+		_, message, err := customer.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -90,9 +90,7 @@ func (c *Client) readPump() {
 			break
 		}
 
-		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		mes, err := json.Marshal(Letter{c.ID, string(message)})
+		mes, err := json.Marshal(Letter{customer.ID, string(message)})
 		if err != nil {
 			log.Println(err)
 		}
@@ -102,24 +100,24 @@ func (c *Client) readPump() {
 }
 
 // start - func for start methods of client
-func (c *Client) start() {
+func (customer *Client) start() {
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
-	go c.writePump()
-	go c.readPump()
+	go customer.writePump()
+	go customer.readPump()
 }
 
 // GetID - return Client ID
 // type int
-func (c Client) GetID() int {
-	return c.ID
+func (customer Client) GetID() int {
+	return customer.ID
 }
 
-// InitClient - (c *websocket.Conn) *Client
-func InitClient(c *websocket.Conn) *Client {
+// InitClient - (customer *websocket.Conn) *Client
+func InitClient(customer *websocket.Conn) *Client {
 	client := &Client{
-		Conn: c,
-
+		Conn: customer,
+		Status: true,
 		// Buffered channel of outbound messages.
 		Send: make(chan []byte, maxMessageSize),
 	}

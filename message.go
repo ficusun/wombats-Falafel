@@ -6,6 +6,6 @@ type Message []byte
 
 // Letter - message type for global array
 type Letter struct {
-	ClientID   int
-	Letter string
+	ClientID int
+	Letter   string
 }

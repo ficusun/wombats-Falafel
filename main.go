@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/gorilla/websocket"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 )
@@ -70,8 +70,7 @@ func Start() {
 
 }
 
-
-func Router (MessageFromUsers chan []byte) {
+func Router(MessageFromUsers chan []byte) {
 	for message := range MessageFromUsers {
 
 		letter := Letter{}
@@ -86,11 +85,26 @@ func Router (MessageFromUsers chan []byte) {
 			log.Println(err)
 		}
 
+		// id offline users
+		offUsersId := make([]int, 0)
+
 		for id, _ := range Hub.Connections {
-			if id != letter.ClientID {
-				Hub.Connections[id].Send<- messageForUser //[]byte(letter)
+
+			if id != letter.ClientID || Hub.Connections[id].Status == true {
+				Hub.Connections[id].Send <- messageForUser //[]byte(letter)
+			}
+
+			if Hub.Connections[id].Status == false {
+				offUsersId = append(offUsersId, id)
+				fmt.Println("Hello: ",offUsersId)
 			}
 		}
+
+		for _, id := range offUsersId {
+			// remove closed connections
+			delete(Hub.Connections, id)
+		}
+
 	}
 }
 

@@ -11,13 +11,11 @@ const (
 	// using in connections/func (c *Connections) Add
 	TimeForAuth = 10000
 
-
 	// MaxConnections - max connections clients
 	// using in:
 	// clients/CleanOffConn()
 	// server/Connections
 	MaxConnections = 500
-
 
 	// Maximum message size allowed from peer.
 	// using in:
